@@ -1,5 +1,5 @@
 from transitions.extensions import GraphMachine
-from utils import send_text_message
+from utils import send_text_message, send_image_url
 import jieba
 import jieba.posseg as pseg
 import random
@@ -79,10 +79,25 @@ class TocMachine(GraphMachine):
     def on_enter_state0(self, event):
         print("I'm entering state0")
 
-        answer = q_a(event['message']['text'], event['docs'], event['qa'])
-
         sender_id = event['sender']['id']
-        send_text_message(sender_id, answer)
+
+        if(event['message']['text'] == '醜'):
+            urls = []
+            with open('data/photo/photourl.txt','r') as dataset:
+                for line in dataset:
+                    line = line.strip('\n')
+                    urls.append(line)
+  
+            i = random.randint(0,16)
+            send_image_url(sender_id,urls[i])
+        else:
+            answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
+
+            if(similarity > 35):
+                send_text_message(sender_id, answer)
+            else:
+                send_text_message(sender_id, "問我一些八卦好嗎")
+        
         #send_text_message(sender_id, "你好 很高興認識你^^")
         #send_text_message(sender_id, "你可以問我喜歡什麼、什麼星座、和我的個性唷")
         self.go_back()
@@ -131,7 +146,9 @@ class TocMachine(GraphMachine):
         for i in range(len(metadata)):
             if(event['message']['text'] == metadata[i]['title']):
                 send_text_message(sender_id, metadata[i]['link'])
+                break
         
+        #send_button_message(sender_id, metadata[0]['title'], metadata[0]['link'])
         send_text_message(sender_id, "有空的話可以約一下摟*.*")
         self.go_final(event, score)
 

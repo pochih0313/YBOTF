@@ -190,13 +190,13 @@ if __name__ == "__main__":
     rows = parse_article_entries(page)
     metadata = [parse_article_meta(entry) for entry in rows]
 
-    with open('Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
+    with open('data/Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             q,a = line.split('\t')
             qa.append([q,a])
-    
-    with open('segResult.txt','r',encoding='utf-8') as dataset:
+
+    with open('data/segResult.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             #doc = []
@@ -204,5 +204,5 @@ if __name__ == "__main__":
             #docs.append(doc)
             #question.append(q)
 
-    #print(metadata)
+    #print(docs)
     run(host="localhost", port=5000, debug=True, reloader=True)

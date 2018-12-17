@@ -99,9 +99,16 @@ def q_a(query, docs, qa):
 
     scores = bm25.simall(words)
     index = scores.index(max(scores))
+    maxx = max(scores)/bm25.sim(docs[index], index) #獲取文本相似比例
+    similarity = maxx*100 
+    #print(docs[index])
+    
+    print(similarity)
     print(max(scores))
+    print(bm25.sim(docs[index], index))
+    print(qa[index][0])
     print(qa[index][1])
-    return qa[index][1]
+    return qa[index][1], similarity
     #score = bm25.sim(words, 0)
     #scores.append(score)
     
