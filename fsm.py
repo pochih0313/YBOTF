@@ -16,7 +16,12 @@ class TocMachine(GraphMachine):
     def is_going_to_state1(self, event):
         if event.get("message"):
             text = event['message']['text']
-
+            
+            """
+            answer = q_a(text, event['docs'], event['qa'])[0]
+            if answer == "你猜猜看呀":
+                return True
+            """
             s = pseg.cut(text)
             f = 0
             for word, flag in s:
@@ -25,8 +30,6 @@ class TocMachine(GraphMachine):
                 elif((f == 1) & (flag == 'v') & (word == '喜歡')):
                     return True
                 print("%s %s" % (word, flag))
-            f = 0
-
         return False
 
     def is_going_to_state1_1(self, event, score, metadata):
@@ -90,13 +93,26 @@ class TocMachine(GraphMachine):
   
             i = random.randint(0,16)
             send_image_url(sender_id,urls[i])
+        elif(event['message']['text'] == '抽'):
+            urls = []
+            with open('data/img_url.txt','r') as dataset:
+                for line in dataset:
+                    line = line.strip('\n')
+                    urls.append(line)
+  
+            i = random.randint(0,9291)
+            send_image_url(sender_id,urls[i])
+        elif(('你好' in event['message']['text']) | ('哈囉' in event['message']['text']) | ('嗨' in event['message']['text'])):
+            send_text_message(sender_id, "你好 很高興認識你^^")
+        elif('你可以幹嘛' in event['message']['text']):
+            send_text_message(sender_id, "你可以問我喜歡什麼、什麼星座、或我的個性")
         else:
             answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
 
             if(similarity > 35):
                 send_text_message(sender_id, answer)
             else:
-                send_text_message(sender_id, "問我一些八卦好嗎")
+                send_text_message(sender_id, "可以問我一些奇怪的問題")
         
         #send_text_message(sender_id, "你好 很高興認識你^^")
         #send_text_message(sender_id, "你可以問我喜歡什麼、什麼星座、和我的個性唷")
@@ -122,7 +138,7 @@ class TocMachine(GraphMachine):
         print(score)
 
         i = random.randint(0,20)
-        print(i)
+        #print(i)
 
         message = "有一部電影叫 %s 不知道你有沒有聽過"%(metadata[i]['title'])
         link = metadata[i]['link']
@@ -147,9 +163,12 @@ class TocMachine(GraphMachine):
             if(event['message']['text'] == metadata[i]['title']):
                 send_text_message(sender_id, metadata[i]['link'])
                 break
+        i = random.randint(0,20)
+        send_text_message(sender_id, "推薦你一部好看的")
+        send_text_message(sender_id, metadata[i]['link'])
         
         #send_button_message(sender_id, metadata[0]['title'], metadata[0]['link'])
-        send_text_message(sender_id, "有空的話可以約一下摟*.*")
+        #send_text_message(sender_id, "有空的話可以約一下摟*.*")
         self.go_final(event, score)
 
     def on_exit_state1_1_1(self, event, score):
@@ -190,7 +209,20 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "像是有旋律的東西或一些會動的畫面")
+        answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
+
+        if(similarity > 35):
+            send_text_message(sender_id, answer)
+        else:
+            reply = []
+            reply.append("一些有旋律的東西阿")
+            reply.append("我常常去電影院")
+            reply.append("你應該要好好猜")
+            reply.append("我們應該興趣蠻像的")
+            i = random.randint(0,3)
+            send_text_message(sender_id, reply[i])
+
+        #send_text_message(sender_id, "像是有旋律的東西或一些會動的畫面")
         self.go_back_state1(event)
 
     def on_exit_state1_3(self, event):
@@ -257,7 +289,20 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "有點紆迴，做事不果斷，多愁善感，喜歡亂想")
+
+        answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
+
+        if(similarity > 35):
+            send_text_message(sender_id, answer)
+        else:
+            reply = []
+            reply[0] = "有點紆迴，做事不果斷，多愁善感，喜歡亂想"
+            #reply[1] = "我常常去電影院"
+            #reply[2] = "你應該要好好猜"
+            #reply[3] = "我們應該興趣蠻像的"
+            #i = random.randint(0,4)
+            send_text_message(sender_id, reply[0])
+
         self.go_back_state2(event)
 
     def on_exit_state2_2(self, event):

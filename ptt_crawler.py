@@ -11,14 +11,15 @@ from bs4 import BeautifulSoup
 from six import u
 #from sklearn.feature_extraction.text import CountVectorizer
 #from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
-import numpy
+#from sklearn.feature_extraction.text import TfidfVectorizer
+#import numpy
 
 #from multiprocessing import Pool
 
 # class define #
 def fetch(ur1): #獲得原始碼
-    response = requests.get(ur1)
+    #response = requests.get(ur1)
+    response = requests.get(ur1, cookies={'over18': '1'})
     return response
 
 def parse_article_entries(doc): #找到標題
@@ -29,8 +30,8 @@ def parse_article_entries(doc): #找到標題
 def parse_article_meta(entry): #標題資訊抓取
     meta = {
         'title': entry.find('div.title', first=True).text,
-        'push': entry.find('div.nrec', first=True).text,
-        'date': entry.find('div.date', first=True).text,
+        #'push': entry.find('div.nrec', first=True).text,
+        #'date': entry.find('div.date', first=True).text,
         #'author': entry.find('div.author', first=True).text,
         #'link': entry.find('div.title > a', first=True).attrs['href'],
     }
@@ -78,38 +79,28 @@ def get_paged_meta(url, num_pages): #取得所有頁面內容
 
     return collected_meta
 
-def get_posts(url): #取得文章內容
+def get_url(url): #取得圖片url
     resp = fetch(url)
     soup = BeautifulSoup(resp.text, 'html.parser')
     main_content = soup.find(id = "main-content")
-    metas = main_content.select('div.article-metaline')
+    #print(main_content)
+    #metas = main_content.select('div.article-metaline')
 
-    url = []
-    url = soup.find_all('a')['href']
-    print(url)
+    #url = []
+    #url = main_content.find_all('a', recursive = False)
+    img_urls = []
+    for url in main_content.find_all('a', recursive = False):
+        #print(url.get('href'))
+        if url.get('href').startswith('https://i.imgur.com'):
+            #print("hi")
+            img_urls.append(url.get('href'))
+    #print(img_urls)
 
-    #url = soup.find_next('a')['href']
-
-    filtered = [ v for v in main_content.stripped_strings 
-                if v[0] not in [u'※', u'◆'] and v[:2] not in [u'--'] ]
-    expr = re.compile(u(r'[^\u4e00-\u9fa5\u3002\uff1b\uff0c\uff1a\u201c\u201d\uff08\uff09\u3001\uff1f\u300a\u300b\s\w:/-_.?~%()]'))
-    for i in range(len(filtered)):
-        filtered[i] = re.sub(expr, '', filtered[i])
-
-    filtered = [_f for _f in filtered if _f]  # remove empty strings
-    #filtered = [x for x in filtered if article_id not in x]  # remove last line containing the url of the article
-    content = ' '.join(filtered)
-    content = re.sub(r'(\s)+', ' ', content)
-    #post_link = [
-    #    urllib.parse.urljoin(domain, meta['link']) 
-    #    for meta in metadata if 'link' in meta]
-    
-    meta['link'] = entry.find('div.title > a', first=True).attrs['href']
-    return url
+    return img_urls
 
 
 domain = 'http://www.ptt.cc/'
-start_url = 'https://www.ptt.cc/bbs/Beauty/index.html'
+start_url = 'https://www.ptt.cc/bbs/sex/index.html'
 
 #******************************************main*************************************#
 if __name__ == '__main__':
@@ -120,45 +111,24 @@ if __name__ == '__main__':
     metadata = get_paged_meta(start_url, num_pages=n)
     link = [urllib.parse.urljoin(domain, meta['link']) 
             for meta in metadata if 'link' in meta]
+    print("preparing time: %f sec" % (time.time()-start))
 
-    #*****Segmentation*****# 
-    post = ''
-    seg_list = []
-
+    #*****Crawling pictures url*****# 
+    point = time.time()
+    
+    urls = []
+    f = open('data/img1_url.txt', 'w')
     for i in range(len(link)):
-        contents = get_posts(link[i]) + '\n'
-        seg = jieba.cut(contents)
-        seg_list.append(' '.join(seg))
-        post += contents
+        #print("crawling...")
+        urls = get_url(link[i])
+        for j in range(len(urls)):
+            f.write(urls[j])
+            f.write("\n")
+        print('time of crawling and writing data: %f sec' % (time.time()-point))
 
-    print('time of crawling and segmentation: %f sec' % (time.time()-start)) 
+    #print(urls)
 
+    print('total time: %f sec' % (time.time()-start)) 
 
     print("Done!")
-    print('total time: %f sec' % (time.time()-start))
-
-
-
-
-
-#print(metadata)
-#print(link[1])
-
-#for meta in metadata:
-#    print(meta['link'])
-#print(get_posts(metadata))
-#print(post_entries)
-
-
-#for post, resps in zip(metadata, resps):
-#    print('{0} {1: <15} {2}, 網頁內容共 {3} 字'.format(
-#        post['date'], post['author'], post['title'], len(resps.text)))
-
-
-
-
-# In[ ]:
-
-
-
 

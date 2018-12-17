@@ -190,6 +190,63 @@ if __name__ == "__main__":
     rows = parse_article_entries(page)
     metadata = [parse_article_meta(entry) for entry in rows]
 
+    """
+    f = open('data/chat_full.txt','w',encoding='utf-8')
+    with open('data/chat.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            l = line.split('\t')
+            if(len(l) == 3):
+                f.write("\n")
+                f.write(line)
+                #if(line[1] == "柏志"):
+                #q = line[2]
+            elif((len(l) == 1) & ("2017" not in l[0])):
+                f.write(" ")
+                f.write(line)
+    """
+
+    """
+    flag = 0
+    q = []
+    a = []
+    qq = []
+    aa = []
+    n = 0
+    m = 0
+    with open('data/chat_full.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            l = line.split('\t')
+            if(l[1] == "柏志"):
+                if(flag == 0):
+                    aa.append([])
+                    aa[n].append(a)
+                    n += 1
+                    a.clear()
+                    #a = []
+                    q.append(l[2])
+                    flag = 1
+                else:
+                    q.append(l[2])
+            elif(l[1] == "寶"):
+                if(flag == 1):
+                    #print(qlist)
+                    #print(q)
+                    qq.append([])
+                    qq[m].append(q)
+                    m += 1
+                    q.clear()
+                    #q = []
+                    #print(q)
+                    a.append(l[2])
+                    flag = 0
+                else:
+                    a.append(l[2])
+    print(qq)
+    #print(q)
+    """
+
     with open('data/Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
@@ -203,6 +260,7 @@ if __name__ == "__main__":
             docs.append(line.split(' '))
             #docs.append(doc)
             #question.append(q)
+    
 
     #print(docs)
     run(host="localhost", port=5000, debug=True, reloader=True)
