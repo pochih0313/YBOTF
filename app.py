@@ -1,12 +1,20 @@
 from bottle import route, run, request, abort, static_file
 from fsm import TocMachine
 from crawler import fetch, parse_article_entries, parse_article_meta
+from BM25 import BM25, q_a
+import random
 
 score = [0]
 metadata = []
 
 qa = [] #問答list
 docs = [] #分詞後的檔案
+qa0 = []
+docs0 = []
+qa1 = []
+docs1 = []
+qa1_2 = []
+docs1_2 = []
 
 VERIFY_TOKEN = "147852369"
 machine = TocMachine(
@@ -132,6 +140,11 @@ machine = TocMachine(
             'dest': 'state1'
         },
         {
+            'trigger': 'go_back_state1_2',
+            'source': 'state1_2_1',
+            'dest': 'state1_2'
+        },
+        {
             'trigger': 'go_back_state2',
             'source': 'state2_2',
             'dest': 'state2'
@@ -166,13 +179,57 @@ def webhook_handler():
 
     if body['object'] == "page":
         event = body['entry'][0]['messaging'][0]
-        event['qa'] = qa
-        event['docs'] = docs
         #print(event)
         if (machine.state == 'user'):
+            answer, similarity = q_a(event['message']['text'], docs, qa) #文本搜索
+            answer1, similarity1 = q_a(event['message']['text'], docs0, qa0) #文本搜索
+            if (event['message']['text'] == '抽'):
+                event['answer'] = "抽"
+            elif (event['message']['text'] == '醜'):
+                event['answer'] = "醜"
+            elif similarity1 > 40:
+                event['answer'] = answer1
+            elif similarity > 35:
+                event['answer'] = answer
+            else:
+                event['answer'] = "你可以問我各種問題或嘗試了解我"
             machine.advance(event)
-        elif (machine.state == 'state1') | (machine.state == 'state1_1'):
-            machine.advance(event, score, metadata)
+        elif (machine.state == 'state1'):
+            event['flag1'] = 0
+            answer, similarity = q_a(event['message']['text'], docs1, qa1) #文本搜索
+            if(similarity > 40):
+                if(answer == "你也喜歡電影嗎 有一部電影我很喜歡介紹給你"): #state1_1
+                    i = random.randint(0,20)
+                    message = "\n%s：\n%s"%(metadata[i]['title'],metadata[i]['link'])
+                    answer = answer + message
+                    event['flag1'] = 1
+                event['answer'] = answer
+            else:
+                reply = []
+                reply.append("一些有旋律的東西阿")
+                reply.append("我常常去電影院")
+                reply.append("你應該要好好猜")
+                reply.append("我們應該興趣蠻像的")
+                i = random.randint(0,3)
+                event['answer'] = reply[i]
+            machine.advance(event, score)
+        elif (machine.state == 'state1_1'):
+            i = 0
+            for i in range(len(metadata)):
+                if(event['message']['text'] == metadata[i]['title']):
+                    event['answer'] = "這部不錯欸" + metadata[i]['link']
+                    break
+            if(i == 19):
+                i = random.randint(0,19)
+                event['answer'] = "推薦你一部：" + metadata[i]['link']
+            machine.advance(event, score)
+        elif (machine.state == 'state1_2'):
+            answer, similarity = q_a(event['message']['text'], docs1_2, qa1_2) #文本搜索
+            if (similarity > 50):
+                event['answer'] = answer
+            else:
+                event['answer'] = "我不認識他"
+            machine.advance(event, score)
         else:
             machine.advance(event, score)
         return 'OK'
@@ -190,76 +247,53 @@ if __name__ == "__main__":
     rows = parse_article_entries(page)
     metadata = [parse_article_meta(entry) for entry in rows]
 
-    """
-    f = open('data/chat_full.txt','w',encoding='utf-8')
-    with open('data/chat.txt','r',encoding='utf-8') as dataset:
-        for line in dataset:
-            line = line.strip('\n')
-            l = line.split('\t')
-            if(len(l) == 3):
-                f.write("\n")
-                f.write(line)
-                #if(line[1] == "柏志"):
-                #q = line[2]
-            elif((len(l) == 1) & ("2017" not in l[0])):
-                f.write(" ")
-                f.write(line)
-    """
-
-    """
-    flag = 0
-    q = []
-    a = []
-    qq = []
-    aa = []
-    n = 0
-    m = 0
-    with open('data/chat_full.txt','r',encoding='utf-8') as dataset:
-        for line in dataset:
-            line = line.strip('\n')
-            l = line.split('\t')
-            if(l[1] == "柏志"):
-                if(flag == 0):
-                    aa.append([])
-                    aa[n].append(a)
-                    n += 1
-                    a.clear()
-                    #a = []
-                    q.append(l[2])
-                    flag = 1
-                else:
-                    q.append(l[2])
-            elif(l[1] == "寶"):
-                if(flag == 1):
-                    #print(qlist)
-                    #print(q)
-                    qq.append([])
-                    qq[m].append(q)
-                    m += 1
-                    q.clear()
-                    #q = []
-                    #print(q)
-                    a.append(l[2])
-                    flag = 0
-                else:
-                    a.append(l[2])
-    print(qq)
-    #print(q)
-    """
-
-    with open('data/Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
+    with open('data/dialog/Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             q,a = line.split('\t')
             qa.append([q,a])
 
-    with open('data/segResult.txt','r',encoding='utf-8') as dataset:
+    with open('data/segmentation/segResult.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             #doc = []
             docs.append(line.split(' '))
             #docs.append(doc)
             #question.append(q)
+
+    with open('data/dialog/q&a.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            q,a = line.split('\t')
+            qa0.append([q,a])
+
+    with open('data/segmentation/segResult0.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            docs0.append(line.split(' '))
+
+    
+    with open('data/dialog/q&a1.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            q,a = line.split('\t')
+            qa1.append([q,a])
+
+    with open('data/segmentation/segResult1.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            docs1.append(line.split(' '))
+
+    with open('data/dialog/q&a1_2.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            q,a = line.split('\t')
+            qa1_2.append([q,a])
+
+    with open('data/segmentation/segResult1_2.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            docs1_2.append(line.split(' '))
     
 
     #print(docs)

@@ -15,11 +15,10 @@ class TocMachine(GraphMachine):
 
     def is_going_to_state1(self, event):
         if event.get("message"):
-            text = event['message']['text']
+            #text = event['message']['text']
             
-            """
-            answer = q_a(text, event['docs'], event['qa'])[0]
-            if answer == "你猜猜看呀":
+            #answer = q_a(text, event['docs'], event['qa'])[0]
+            if event['answer'] == "你猜猜看呀":
                 return True
             """
             s = pseg.cut(text)
@@ -30,35 +29,47 @@ class TocMachine(GraphMachine):
                 elif((f == 1) & (flag == 'v') & (word == '喜歡')):
                     return True
                 print("%s %s" % (word, flag))
+            """
         return False
 
-    def is_going_to_state1_1(self, event, score, metadata):
+    def is_going_to_state1_1(self, event, score):
         if event.get("message"):
-            text = event['message']['text']
-            
+            #text = event['message']['text']
+            if event['flag1'] == 1:
+                return True
+            """
             s = pseg.cut(text)
             for word, flag in s:
                 if((flag == 'n') & (word == '電影')):
                     return True
+            """
         return False
 
-    def is_going_to_state1_2(self, event, score, metadata):
+    def is_going_to_state1_2(self, event, score):
         if event.get("message"):
-            text = event['message']['text']
-            
+            #text = event['message']['text']
+            if event['answer'] == "我超愛，你有沒有什麼喜歡的歌手":
+                return True
+            """
             s = pseg.cut(text)
             for word, flag in s:
                 if((flag == 'n') & (word == '音樂')):
                     return True
+            """
         return False
 
     def is_going_to_state2(self, event):
         if event.get("message"):
-            text = event['message']['text']
+            #text = event['message']['text']
+
+            if event['answer'] == "來聊聊星座阿":
+                return True
+            """
             s = pseg.cut(text)
             for word, flag in s:
                 if((flag == 'n') & (word == '星座')):
                     return True
+            """
         return False
 
     def is_going_to_state2_1(self, event, result):
@@ -95,13 +106,16 @@ class TocMachine(GraphMachine):
             send_image_url(sender_id,urls[i])
         elif(event['message']['text'] == '抽'):
             urls = []
-            with open('data/img_url.txt','r') as dataset:
+            with open('data/picture/img_url.txt','r') as dataset:
                 for line in dataset:
                     line = line.strip('\n')
                     urls.append(line)
   
             i = random.randint(0,9291)
             send_image_url(sender_id,urls[i])
+        else:
+            send_text_message(sender_id, event['answer'])
+        """
         elif(('你好' in event['message']['text']) | ('哈囉' in event['message']['text']) | ('嗨' in event['message']['text'])):
             send_text_message(sender_id, "你好 很高興認識你^^")
         elif('你可以幹嘛' in event['message']['text']):
@@ -113,7 +127,7 @@ class TocMachine(GraphMachine):
                 send_text_message(sender_id, answer)
             else:
                 send_text_message(sender_id, "可以問我一些奇怪的問題")
-        
+        """
         #send_text_message(sender_id, "你好 很高興認識你^^")
         #send_text_message(sender_id, "你可以問我喜歡什麼、什麼星座、和我的個性唷")
         self.go_back()
@@ -125,33 +139,34 @@ class TocMachine(GraphMachine):
         print("I'm entering state1")
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "你猜猜看呀")
+        send_text_message(sender_id, event['answer'])
         
-    def on_exit_state1(self, event, score, metadata):
+    def on_exit_state1(self, event, score):
         print('Leaving state1')
 
-    def on_enter_state1_1(self, event, score, metadata):
+    def on_enter_state1_1(self, event, score):
         print("I'm entering state1_1")
 
         print(score)
         score[0] = score[0]+2
         print(score)
-
-        i = random.randint(0,20)
+        
+        #i = random.randint(0,20)
         #print(i)
 
-        message = "有一部電影叫 %s 不知道你有沒有聽過"%(metadata[i]['title'])
-        link = metadata[i]['link']
-
         sender_id = event['sender']['id']
-        send_text_message(sender_id, message)
-        send_text_message(sender_id, link)
-        send_text_message(sender_id, "還是你還想看其他台北票房排行榜電影的介紹？")
+        send_text_message(sender_id, event['answer'])
+        send_text_message(sender_id, "聊聊其他電影如何")
+        #message = "%s：\n%s"%(metadata[i]['title'],metadata[i]['link'])
+        #send_text_message(sender_id, message)
 
-    def on_exit_state1_1(self, event, score, metadata):
+        #send_text_message(sender_id, link)
+        #send_text_message(sender_id, "聊聊其他電影如何")
+
+    def on_exit_state1_1(self, event, score):
         print('Leaving state1-1')
     
-    def on_enter_state1_1_1(self, event, score, metadata):
+    def on_enter_state1_1_1(self, event, score):
         print("I'm entering state1_1_1")
 
         #print(score)
@@ -159,22 +174,24 @@ class TocMachine(GraphMachine):
         #print(score)
 
         sender_id = event['sender']['id']
-        for i in range(len(metadata)):
-            if(event['message']['text'] == metadata[i]['title']):
-                send_text_message(sender_id, metadata[i]['link'])
-                break
+        send_text_message(sender_id, event['answer'])
+
+        self.go_final(event, score)
+
+        """
         i = random.randint(0,20)
         send_text_message(sender_id, "推薦你一部好看的")
         send_text_message(sender_id, metadata[i]['link'])
-        
+        self.go_back_state1_1()
+        """
         #send_button_message(sender_id, metadata[0]['title'], metadata[0]['link'])
         #send_text_message(sender_id, "有空的話可以約一下摟*.*")
-        self.go_final(event, score)
+        
 
     def on_exit_state1_1_1(self, event, score):
         print('Leaving state1-1-1')
 
-    def on_enter_state1_2(self, event, score, metadata):
+    def on_enter_state1_2(self, event, score):
         print("I'm entering state1_2")
 
         print(score)
@@ -182,7 +199,7 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "我的偶像是廣仲")
+        send_text_message(sender_id, event['answer'])
 
     def on_exit_state1_2(self, event, score):
         print('Leaving state1-2')
@@ -195,32 +212,29 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "音樂連結：")
+        send_text_message(sender_id, event['answer'])
+        #self.go_back_state1_2(event, score)
+        #send_text_message(sender_id, "音樂連結：")
         self.go_final(event, score)
 
     def on_exit_state1_2_1(self, event, score):
         print('Leaving state1-2-1')
 
-    def on_enter_state1_3(self, event, score, metadata):
+    def on_enter_state1_3(self, event, score):
         print("I'm entering state1_3")
 
         print(score)
         score[0] = score[0]-1
         print(score)
 
-        sender_id = event['sender']['id']
-        answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
+        #sender_id = event['sender']['id']
+        #answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
 
-        if(similarity > 35):
-            send_text_message(sender_id, answer)
-        else:
-            reply = []
-            reply.append("一些有旋律的東西阿")
-            reply.append("我常常去電影院")
-            reply.append("你應該要好好猜")
-            reply.append("我們應該興趣蠻像的")
-            i = random.randint(0,3)
-            send_text_message(sender_id, reply[i])
+        #if(similarity > 35):
+        #    send_text_message(sender_id, answer)
+        #else:
+        
+        #send_text_message(sender_id, reply[i])
 
         #send_text_message(sender_id, "像是有旋律的東西或一些會動的畫面")
         self.go_back_state1(event)
@@ -232,7 +246,7 @@ class TocMachine(GraphMachine):
         print("I'm entering state2")
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "猜看看啊")
+        send_text_message(sender_id, event['answer'])
         #self.go_back()
 
     def on_exit_state2(self, event, score):
