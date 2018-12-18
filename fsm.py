@@ -62,7 +62,7 @@ class TocMachine(GraphMachine):
         if event.get("message"):
             #text = event['message']['text']
 
-            if event['answer'] == "來聊聊星座阿":
+            if event['answer'] == "來聊聊星座阿 猜猜我是什麼星座":
                 return True
             """
             s = pseg.cut(text)
@@ -72,16 +72,11 @@ class TocMachine(GraphMachine):
             """
         return False
 
-    def is_going_to_state2_1(self, event, result):
-        if event.get("message"):
-            text = event['message']['text']
-            return ('雙魚' in text)
-        return False
-
     def is_going_to_state2_1_1(self, event, result):
         if event.get("message"):
-            text = event['message']['text']
-            return (('雙魚' in text) | ('巨蟹' in text) | ('天蠍' in text))
+            #text = event['message']['text']
+            if event['answer'] == "雙魚":
+                return True
         return False
 
     def is_going_to_state3(self, event):
@@ -220,6 +215,7 @@ class TocMachine(GraphMachine):
     def on_exit_state1_2_1(self, event, score):
         print('Leaving state1-2-1')
 
+    """
     def on_enter_state1_3(self, event, score):
         print("I'm entering state1_3")
 
@@ -238,6 +234,7 @@ class TocMachine(GraphMachine):
 
         #send_text_message(sender_id, "像是有旋律的東西或一些會動的畫面")
         self.go_back_state1(event)
+    """
 
     def on_exit_state1_3(self, event):
         print('Leaving state1-3')
@@ -260,9 +257,9 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
-        sender_text_message(sender_id, event['answer'])
-        send_text_message(sender_id, "哇很明顯嗎哈哈")
-        send_text_message(sender_id, "那你是什麼星座r")
+        send_text_message(sender_id, event['answer'])
+        #send_text_message(sender_id, "哇很明顯嗎哈哈")
+        #send_text_message(sender_id, "那你是什麼星座r")
         #self.go_back()
 
     def on_exit_state2_1(self, event, score):
@@ -276,7 +273,7 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "那很適合欸 (愛心")
+        send_text_message(sender_id, "這麼了解 星座專家？")
         self.go_final(event, score)
 
     def on_exit_state2_1_1(self, event, score):
@@ -290,7 +287,12 @@ class TocMachine(GraphMachine):
         print(score)
         
         sender_id = event['sender']['id']
-        send_text_message(sender_id, "喔是喔")
+        if(event['answer'] == "我猜不到這是哪個星座，但肯定不是雙魚哈"):
+            send_text_message(sender_id, event['answer'])
+        else:
+            message = "我覺得這比較像"+event['answer']
+            send_text_message(sender_id, message)
+        
         self.go_final(event, score)
 
     def on_exit_state2_1_2(self, event, score):
@@ -299,24 +301,10 @@ class TocMachine(GraphMachine):
     def on_enter_state2_2(self, event, score):
         print("I'm entering state2_2")
 
-        print(score)
-        score[0] = score[0]-1
-        print(score)
-
         sender_id = event['sender']['id']
 
-        answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
-
-        if(similarity > 35):
-            send_text_message(sender_id, answer)
-        else:
-            reply = []
-            reply[0] = "有點紆迴，做事不果斷，多愁善感，喜歡亂想"
-            #reply[1] = "我常常去電影院"
-            #reply[2] = "你應該要好好猜"
-            #reply[3] = "我們應該興趣蠻像的"
-            #i = random.randint(0,4)
-            send_text_message(sender_id, reply[0])
+        #answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
+        send_text_message(sender_id, "event['answer']")
 
         self.go_back_state2(event)
 
@@ -334,6 +322,7 @@ class TocMachine(GraphMachine):
             send_text_message(sender_id, "你可以滾了==")
         else:
             send_text_message(sender_id, "你可以再多了解我一點")
+        print("score: %d"%score[0])
         self.go_back()
 
     def on_exit_final(self):

@@ -2,7 +2,9 @@ from bottle import route, run, request, abort, static_file
 from fsm import TocMachine
 from crawler import fetch, parse_article_entries, parse_article_meta
 from BM25 import BM25, q_a
+from utils import send_text_message, send_image_url
 import random
+import jieba
 
 score = [0]
 metadata = []
@@ -17,6 +19,8 @@ qa1_2 = []
 docs1_2 = []
 qa2 = []
 docs2 = []
+aq2_1 = []
+docs2_1 = []
 
 VERIFY_TOKEN = "147852369"
 machine = TocMachine(
@@ -89,7 +93,7 @@ machine = TocMachine(
             'trigger': 'advance',
             'source': 'state2',
             'dest': 'state2_1',
-            'conditions': 'is_going_to_state2_1'
+            #'conditions': 'is_going_to_state2_1'
         },
         {
             'trigger': 'advance',
@@ -102,12 +106,6 @@ machine = TocMachine(
             'source': 'state2_1',
             'dest': 'state2_1_2',
             'unless': 'is_going_to_state2_1_1'
-        },
-        {
-            'trigger': 'advance',
-            'source': 'state2',
-            'dest': 'state2_2',
-            'unless': 'is_going_to_state2_1'
         },
 	    {
 	        'trigger': 'advance',
@@ -178,16 +176,17 @@ def webhook_handler():
     print('\nFSM STATE: ' + machine.state)
     print('REQUEST BODY: ')
     print(body)
-
+    
     if body['object'] == "page":
         event = body['entry'][0]['messaging'][0]
+        text = event['message']['text']
         #print(event)
         if (machine.state == 'user'):
-            answer, similarity = q_a(event['message']['text'], docs, qa) #文本搜索
-            answer1, similarity1 = q_a(event['message']['text'], docs0, qa0) #文本搜索
-            if (event['message']['text'] == '抽'):
+            answer, similarity = q_a(text, docs, qa) #文本搜索
+            answer1, similarity1 = q_a(text, docs0, qa0) #文本搜索
+            if (text == '抽'):
                 event['answer'] = "抽"
-            elif (event['message']['text'] == '醜'):
+            elif (text == '醜'):
                 event['answer'] = "醜"
             elif similarity1 > 40:
                 event['answer'] = answer1
@@ -198,7 +197,7 @@ def webhook_handler():
             machine.advance(event)
         elif (machine.state == 'state1'):
             event['flag1'] = 0
-            answer, similarity = q_a(event['message']['text'], docs1, qa1) #文本搜索
+            answer, similarity = q_a(text, docs1, qa1) #文本搜索
             if(similarity > 40):
                 if(answer == "你也喜歡電影嗎 有一部電影我很喜歡介紹給你"): #state1_1
                     i = random.randint(0,20)
@@ -206,6 +205,7 @@ def webhook_handler():
                     answer = answer + message
                     event['flag1'] = 1
                 event['answer'] = answer
+                machine.advance(event, score)
             else:
                 reply = []
                 reply.append("一些有旋律的東西阿")
@@ -214,11 +214,13 @@ def webhook_handler():
                 reply.append("我們應該興趣蠻像的")
                 i = random.randint(0,3)
                 event['answer'] = reply[i]
-            machine.advance(event, score)
+                sender_id = event['sender']['id']
+                send_text_message(sender_id, reply[i])
+            
         elif (machine.state == 'state1_1'):
             i = 0
             for i in range(len(metadata)):
-                if(event['message']['text'] == metadata[i]['title']):
+                if(metadata[i]['title'] in text):
                     event['answer'] = "這部不錯欸" + metadata[i]['link']
                     break
             if(i == 19):
@@ -226,15 +228,37 @@ def webhook_handler():
                 event['answer'] = "推薦你一部：" + metadata[i]['link']
             machine.advance(event, score)
         elif (machine.state == 'state1_2'):
-            answer, similarity = q_a(event['message']['text'], docs1_2, qa1_2) #文本搜索
+            answer, similarity = q_a(text, docs1_2, qa1_2) #文本搜索
             if (similarity > 50):
                 event['answer'] = answer
             else:
                 event['answer'] = "我不認識他"
             machine.advance(event, score)
         elif (machine.state == 'state2'):
-            answer, similarity = q_a(event['message']['text'], docs2, qa2) #文本搜索
-
+            #print(qa2)
+            #print(docs2)
+            #print(qa2)
+            answer, similarity = q_a(text, docs2, qa2) #文本搜索
+            sender_id = event['sender']['id']
+            if(similarity > 50):
+                i = random.randint(0,len(answer)-1)
+                event['answer'] = "依我對這個星座的了解\n" + answer[i]
+                if("雙魚" in text):
+                    event['answer'] = "沒錯哈哈 你覺得雙魚是怎樣的人"
+                    machine.advance(event, score)
+                else: 
+                    send_text_message(sender_id, answer[i])
+                #print(answer[i])
+            else:
+                send_text_message(sender_id, "猜猜看我是什麼星座")
+        elif(machine.state == 'state2_1'):
+            answer, similarity = q_a(text, docs2_1, aq2_1) #文本搜索
+            if(similarity > 10):
+                print(answer)
+                event['answer'] = answer
+            else:
+                event['answer'] = "我猜不到這是哪個星座，但肯定不是雙魚哈"
+            machine.advance(event, score)
         else:
             machine.advance(event, score)
         return 'OK'
@@ -251,7 +275,7 @@ if __name__ == "__main__":
     page = fetch(start_url)
     rows = parse_article_entries(page)
     metadata = [parse_article_meta(entry) for entry in rows]
-
+    
     with open('data/dialog/Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
@@ -288,25 +312,42 @@ if __name__ == "__main__":
         for line in dataset:
             line = line.strip('\n')
             docs1.append(line.split(' '))
+            #print(docs1)
 
     with open('data/dialog/q&a1_2.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             q,a = line.split('\t')
             qa1_2.append([q,a])
-            docs1_2.append(q)
-    """
-    with open('data/segmentation/segResult2.txt','r',encoding='utf-8') as dataset:
-        for line in dataset:
-            line = line.strip('\n')
-            docs2.append(line.split(' '))
+            #print(q)
+            jieba.add_word(q, 3, 'n') #新增jieba辭典
+            docs1_2.append([q])
 
-    
-    with open('data/dialog/q&a2.txt','r',encoding='utf-8') as dataset:
+    with open('data/dialog/q&a2_fix.txt','r',encoding='utf-8') as dataset:
+        q = []
+        a = []
+        for line in dataset:
+            #print(line)
+            line = line.strip('\n')
+            if(line[0] == '/'):
+                if(a != []):
+                    qa2.append([q[1],a])
+                    for i in range(len(a)):
+                        aq2_1.append([a[i],q[1]])
+                    docs2.append([q[1]])
+                    jieba.add_word(q[1], 3, 'n') #新增jieba辭典
+                    q = []
+                    a = []
+                q = line.split('/')
+            else:
+                a.append(line)
+        #print(qa2)
+
+    with open('data/segmentation/segResult2_1.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
-            q,a = line.split('\t')
-            qa2.append([q,a])
-    """
-    #print(docs)
+            docs2_1.append(line.split(' '))
+    #print(docs2_1)
+    
+
     run(host="localhost", port=5000, debug=True, reloader=True)

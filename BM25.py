@@ -53,7 +53,7 @@ class BM25(object):
 def q_a(query, docs, qa):
     words = [] #query分詞後
     scores = []
-    
+
     """
     with open('Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
@@ -92,14 +92,15 @@ def q_a(query, docs, qa):
     #print(docs)
 
     bm25 = BM25(docs)
-
+    words = list(jieba.cut(query)) #斷詞
     #query = input()
     #query = "你是不是腦殘"
-    words = list(jieba.cut(query))
 
+    print(words)
     scores = bm25.simall(words)
     index = scores.index(max(scores))
     maxx = max(scores)/bm25.sim(docs[index], index) #獲取文本相似比例
+    print(docs[index])
     similarity = maxx*100 
     #print(docs[index])
     
