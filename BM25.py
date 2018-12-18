@@ -4,14 +4,14 @@ import time
 
 class BM25(object):
     def __init__(self, docs):
+        self.docs = docs #所有文檔
         self.D = len(docs) #文檔數量
-        self.avgdl = sum([len(docs[i])+0.0 for i in range(len(docs))]) / self.D
-        self.docs = docs
-        self.f = []  #列表的每一個元素是一個dict，dict儲存一個文檔中每個詞的出现次数
+        self.avgdl = sum([len(docs[i])+0.0 for i in range(len(docs))]) / self.D #平均一個文檔的詞量
+        self.tf = []  #列表的每一個元素是一個dict，dict儲存一個文檔中每個詞的出现次数
         self.df = {} #df,儲存每個詞以及出現該詞的文檔數量
-        self.idf = {} #每個詞的idf
-        self.k1 = 1.5
-        self.b = 0.75
+        self.idf = {} #每個詞在語料庫中的頻率: 在語料庫中頻率愈高，重要性愈低（反比）
+        self.k1 = 1.5 #最佳化參數
+        self.b = 0.75 #值愈大，文章長度愈重要
         self.init()
 
     def init(self):
@@ -19,19 +19,19 @@ class BM25(object):
             tmp = {}
             for j in range(len(self.docs[i])):
                 tmp[self.docs[i][j]] = tmp.get(self.docs[i][j], 0) + 1  #儲存每個文檔中每個詞的出現次數
-            self.f.append(tmp)
+            self.tf.append(tmp)
             for k in tmp.keys():
                 self.df[k] = self.df.get(k, 0) + 1
         for k, v in self.df.items():
-            self.idf[k] = math.log(self.D-v+0.5)-math.log(v+0.5)
+            self.idf[k] = math.log(self.D-v+0.5)-math.log(v+0.5) #算idf值
 
     def sim(self, doc, index):
         score = 0
         for i in range(len(doc)):
-            if doc[i] not in self.f[index]:
+            if doc[i] not in self.tf[index]:
                 continue
             d = len(self.docs[index])
-            score += (self.idf[doc[i]]*self.f[index][doc[i]]*(self.k1+1)/(self.f[index][doc[i]]+self.k1*(1-self.b+self.b*d/self.avgdl)))
+            score += (self.idf[doc[i]]*self.tf[index][doc[i]]*(self.k1+1)/(self.tf[index][doc[i]]+self.k1*(1-self.b+self.b*d/self.avgdl)))
         return score
 
 
