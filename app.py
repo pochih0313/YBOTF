@@ -32,12 +32,10 @@ machine = TocMachine(
         'state1_1_1',
         'state1_2',
         'state1_2_1',
-        'state1_3',
         'state2',
         'state2_1',
         'state2_1_1',
         'state2_1_2',
-        'state2_2',
         'final'
     ],
     transitions=[
@@ -45,7 +43,7 @@ machine = TocMachine(
             'trigger': 'advance',
             'source': 'user',
             'dest': 'state0',
-            'unless':['is_going_to_state1','is_going_to_state2','is_going_to_state3']
+            'unless':['is_going_to_state1','is_going_to_state2']
         },
         {
             'trigger': 'advance',
@@ -78,12 +76,6 @@ machine = TocMachine(
             #'conditions': 'is_going_to_state1_2_1'
 	    },
         {
-	        'trigger': 'advance',
-            'source': 'state1',
-            'dest': 'state1_3',
-            'unless': ['is_going_to_state1_1','is_going_to_state1_2']
-	    },
-        {
             'trigger': 'advance',
             'source': 'user',
             'dest': 'state2',
@@ -107,12 +99,6 @@ machine = TocMachine(
             'dest': 'state2_1_2',
             'unless': 'is_going_to_state2_1_1'
         },
-	    {
-	        'trigger': 'advance',
-            'source': 'user',
-            'dest': 'state3',
-            'conditions': 'is_going_to_state3'
-	    },
         {
 	        'trigger': 'go_final',
             'source': [
@@ -127,27 +113,9 @@ machine = TocMachine(
             'trigger': 'go_back',
             'source': [
 		        'state0',
-                'state1',
-                'state2',
-                'state3',
                 'final'  
             ],
             'dest': 'user'
-        },
-        {
-            'trigger': 'go_back_state1',
-            'source': 'state1_3',
-            'dest': 'state1'
-        },
-        {
-            'trigger': 'go_back_state1_2',
-            'source': 'state1_2_1',
-            'dest': 'state1_2'
-        },
-        {
-            'trigger': 'go_back_state2',
-            'source': 'state2_2',
-            'dest': 'state2'
         }
     ],
     initial='user',
@@ -348,6 +316,5 @@ if __name__ == "__main__":
             line = line.strip('\n')
             docs2_1.append(line.split(' '))
     #print(docs2_1)
-    
 
     run(host="localhost", port=5000, debug=True, reloader=True)

@@ -79,12 +79,6 @@ class TocMachine(GraphMachine):
                 return True
         return False
 
-    def is_going_to_state3(self, event):
-        if event.get("message"):
-            text = event['message']['text']
-            return text.lower() == 'go to state3'
-        return False
-
     def on_enter_state0(self, event):
         print("I'm entering state0")
 
@@ -92,7 +86,7 @@ class TocMachine(GraphMachine):
 
         if(event['message']['text'] == '醜'):
             urls = []
-            with open('data/photo/photourl.txt','r') as dataset:
+            with open('data/picture/photourl.txt','r') as dataset:
                 for line in dataset:
                     line = line.strip('\n')
                     urls.append(line)
@@ -236,9 +230,6 @@ class TocMachine(GraphMachine):
         self.go_back_state1(event)
     """
 
-    def on_exit_state1_3(self, event):
-        print('Leaving state1-3')
-
     def on_enter_state2(self, event):
         print("I'm entering state2")
 
@@ -298,19 +289,6 @@ class TocMachine(GraphMachine):
     def on_exit_state2_1_2(self, event, score):
         print('Leaving state2-1-2')
 
-    def on_enter_state2_2(self, event, score):
-        print("I'm entering state2_2")
-
-        sender_id = event['sender']['id']
-
-        #answer, similarity = q_a(event['message']['text'], event['docs'], event['qa']) #文本搜索
-        send_text_message(sender_id, "event['answer']")
-
-        self.go_back_state2(event)
-
-    def on_exit_state2_2(self, event):
-        print('Leaving state2-2')
-
     def on_enter_final(self, event, score):
         print("I'm entering final")
 
@@ -327,13 +305,3 @@ class TocMachine(GraphMachine):
 
     def on_exit_final(self):
         print('Leaving final')
-
-    def on_enter_state3(self, event):
-        print("I'm entering state3")
-
-        sender_id = event['sender']['id']
-        send_text_message(sender_id, "I'm entering state3")
-        self.go_back()
-
-    def on_exit_state3(self):
-        print('Leaving state3')
