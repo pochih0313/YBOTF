@@ -26,21 +26,14 @@ def send_image_url(id, urls):
             "attachment":{
                 "type": "image",
                 "payload":{
-                    #"is_reusable":"true"
+                    "is_reusable":"true",
                     "url": urls
                 }
             }
         }
-        #"filedata": "@/home/michael/Desktop/YBOTG/data/photo/20181216_181217_0001.jpg;type=image/jpg"
     }
-    #filedata = "@/home/michael/Desktop/YBOTG/data/photo/20181216_181217_0001.jpg;type=image/jpg"
     response = requests.post(url, json=payload)
 
     if response.status_code != 200:
         print("Unable to send message: " + response.text)
     return response
-    #pass
-"""
-def send_button_message(id, text, buttons):
-    pass
-"""

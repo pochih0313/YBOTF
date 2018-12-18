@@ -1,24 +1,15 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import urllib.parse
 import re
 import requests
-#import jieba
 import time
 from requests_html import HTML
 from bs4 import BeautifulSoup
 from six import u
-#from sklearn.feature_extraction.text import CountVectorizer
-#from sklearn.feature_extraction.text import TfidfTransformer
-#from sklearn.feature_extraction.text import TfidfVectorizer
-#import numpy
 
-#from multiprocessing import Pool
+domain = 'http://www.ptt.cc/'
+start_url = 'https://www.ptt.cc/bbs/sex/index.html'
 
-# class define #
 def fetch(ur1): #獲得原始碼
-    #response = requests.get(ur1)
     response = requests.get(ur1, cookies={'over18': '1'})
     return response
 
@@ -28,14 +19,8 @@ def parse_article_entries(doc): #找到標題
     return post_entries
 
 def parse_article_meta(entry): #標題資訊抓取
-    meta = {
-        'title': entry.find('div.title', first=True).text,
-        #'push': entry.find('div.nrec', first=True).text,
-        #'date': entry.find('div.date', first=True).text,
-        #'author': entry.find('div.author', first=True).text,
-        #'link': entry.find('div.title > a', first=True).attrs['href'],
-    }
-    
+    meta['title'] = entry.find('div.title', first=True).text
+
     try:
         # 正常狀況取得資料
         meta['author'] = entry.find('div.author', first=True).text
@@ -55,7 +40,6 @@ def parse_article_meta(entry): #標題資訊抓取
     return meta
 
 def get_metadata_from(url): #從某一頁面取得內容
-
     def parse_next_link(doc):
         html = HTML(html=doc)
         controls = html.find('.action-bar a.btn.wide')
@@ -83,28 +67,15 @@ def get_url(url): #取得圖片url
     resp = fetch(url)
     soup = BeautifulSoup(resp.text, 'html.parser')
     main_content = soup.find(id = "main-content")
-    #print(main_content)
-    #metas = main_content.select('div.article-metaline')
 
-    #url = []
-    #url = main_content.find_all('a', recursive = False)
     img_urls = []
     for url in main_content.find_all('a', recursive = False):
-        #print(url.get('href'))
         if url.get('href').startswith('https://i.imgur.com'):
-            #print("hi")
             img_urls.append(url.get('href'))
-    #print(img_urls)
-
     return img_urls
-
-
-domain = 'http://www.ptt.cc/'
-start_url = 'https://www.ptt.cc/bbs/sex/index.html'
 
 #******************************************main*************************************#
 if __name__ == '__main__':
-
     n = int(input("Pages:"))
 
     start = time.time()
@@ -119,16 +90,12 @@ if __name__ == '__main__':
     urls = []
     f = open('data/img1_url.txt', 'w')
     for i in range(len(link)):
-        #print("crawling...")
         urls = get_url(link[i])
         for j in range(len(urls)):
             f.write(urls[j])
             f.write("\n")
         print('time of crawling and writing data: %f sec' % (time.time()-point))
 
-    #print(urls)
-
-    print('total time: %f sec' % (time.time()-start)) 
-
+    print('total time: %f sec' % (time.time()-start))
     print("Done!")
 

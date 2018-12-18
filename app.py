@@ -6,8 +6,8 @@ from utils import send_text_message, send_image_url
 import random
 import jieba
 
-score = [0]
-metadata = []
+score = [0] #分數
+metadata = []   #yahoo電影爬文內容
 
 qa = [] #問答list
 docs = [] #分詞後的檔案
@@ -61,7 +61,6 @@ machine = TocMachine(
             'trigger': 'advance',
             'source': 'state1_1',
             'dest': 'state1_1_1',
-            #'conditions': 'is_going_to_state1_1_1'
         },
         {
 	        'trigger': 'advance',
@@ -73,7 +72,6 @@ machine = TocMachine(
 	        'trigger': 'advance',
             'source': 'state1_2',
             'dest': 'state1_2_1',
-            #'conditions': 'is_going_to_state1_2_1'
 	    },
         {
             'trigger': 'advance',
@@ -85,7 +83,6 @@ machine = TocMachine(
             'trigger': 'advance',
             'source': 'state2',
             'dest': 'state2_1',
-            #'conditions': 'is_going_to_state2_1'
         },
         {
             'trigger': 'advance',
@@ -122,7 +119,6 @@ machine = TocMachine(
     auto_transitions=False,
     show_conditions=True,
 )
-#machine.add_ordered_transitions()
 
 @route("/webhook", method="GET")
 def setup_webhook():
@@ -148,33 +144,38 @@ def webhook_handler():
     if body['object'] == "page":
         event = body['entry'][0]['messaging'][0]
         text = event['message']['text']
-        #print(event)
-        if (machine.state == 'user'):
-            answer, similarity = q_a(text, docs, qa) #文本搜索
-            answer1, similarity1 = q_a(text, docs0, qa0) #文本搜索
+        
+        if (machine.state == 'user'):   #抽圖片
             if (text == '抽'):
                 event['answer'] = "抽"
             elif (text == '醜'):
                 event['answer'] = "醜"
-            elif similarity1 > 40:
-                event['answer'] = answer1
-            elif similarity > 35:
-                event['answer'] = answer
-            else:
-                event['answer'] = "你可以問我各種問題或嘗試了解我"
-            machine.advance(event)
-        elif (machine.state == 'state1'):
-            event['flag1'] = 0
-            answer, similarity = q_a(text, docs1, qa1) #文本搜索
+            else:    
+                answer, similarity = q_a(text, docs0, qa0)  #q&a問候語文本搜索
+                if similarity > 40:
+                    event['answer'] = answer
+                else:
+                    answer1, similarity1 = q_a(text, docs, qa)  #ptt八卦問答文本搜索
+                    if similarity1 > 35:
+                        event['answer'] = answer1
+                    else:
+                        event['answer'] = "你可以問我各種問題或嘗試了解我"
+            machine.advance(event)  #往下個state: state0, state1, state2
+        elif (machine.state == 'state1'):   #問興趣
+            event['flag1'] = 0  #for state1_1
+            answer, similarity = q_a(text, docs1, qa1) #q&a1興趣文本搜索
             if(similarity > 40):
-                if(answer == "你也喜歡電影嗎 有一部電影我很喜歡介紹給你"): #state1_1
-                    i = random.randint(0,20)
+                if(answer == "你也喜歡電影嗎 有一部電影我很喜歡介紹給你"): #message為電影
+                    i = random.randint(0,20) #從票房排行榜中隨機推薦一部電影
                     message = "\n%s：\n%s"%(metadata[i]['title'],metadata[i]['link'])
                     answer = answer + message
-                    event['flag1'] = 1
+                    event['flag1'] = 1  #state1_1判斷條件
                 event['answer'] = answer
-                machine.advance(event, score)
-            else:
+                machine.advance(event, score)   #往下個state: state1_1, state1_2
+            else:   #答錯
+                print("your score before:", score[0])
+                score[0] = score[0]-1   #扣1分
+                print("your score now:", score[0])
                 reply = []
                 reply.append("一些有旋律的東西阿")
                 reply.append("我常常去電影院")
@@ -183,50 +184,66 @@ def webhook_handler():
                 i = random.randint(0,3)
                 event['answer'] = reply[i]
                 sender_id = event['sender']['id']
-                send_text_message(sender_id, reply[i])
+                send_text_message(sender_id, reply[i])  #隨機選一個答覆
             
-        elif (machine.state == 'state1_1'):
+        elif (machine.state == 'state1_1'): #問電影
             i = 0
-            for i in range(len(metadata)):
-                if(metadata[i]['title'] in text):
+            for i in range(len(metadata)):  #找排行榜
+                if(metadata[i]['title'] in text):   #訊息在排行榜裡
                     event['answer'] = "這部不錯欸" + metadata[i]['link']
+                    print("your score before:", score[0])
+                    score[0] = score[0]+1   #加1分
+                    print("your score now:", score[0])
                     break
-            if(i == 19):
+            if(i == 19):    #訊息不在排行榜
                 i = random.randint(0,19)
-                event['answer'] = "推薦你一部：" + metadata[i]['link']
-            machine.advance(event, score)
-        elif (machine.state == 'state1_2'):
-            answer, similarity = q_a(text, docs1_2, qa1_2) #文本搜索
+                event['answer'] = "推薦你一部：" + metadata[i]['link'] 
+            machine.advance(event, score)   #往下個state: state1_1_1
+        elif (machine.state == 'state1_2'): #問音樂
+            answer, similarity = q_a(text, docs1_2, qa1_2) #q&a1_2歌手文本搜索
             if (similarity > 50):
+                print("your score before:", score[0])
+                score[0] = score[0]+1   #加1分
+                print("your score now:", score[0])
                 event['answer'] = answer
             else:
                 event['answer'] = "我不認識他"
-            machine.advance(event, score)
-        elif (machine.state == 'state2'):
-            #print(qa2)
-            #print(docs2)
-            #print(qa2)
-            answer, similarity = q_a(text, docs2, qa2) #文本搜索
+            machine.advance(event, score)   #往下個state: state1_2_1
+        elif (machine.state == 'state2'):   #問星座
+            answer, similarity = q_a(text, docs2, qa2) #q&a2星座文本搜索
             sender_id = event['sender']['id']
-            if(similarity > 50):
-                i = random.randint(0,len(answer)-1)
-                event['answer'] = "依我對這個星座的了解\n" + answer[i]
-                if("雙魚" in text):
+            if(similarity > 50):    #訊息為12星座之一  
+                if("雙魚" in text): #正確答案
                     event['answer'] = "沒錯哈哈 你覺得雙魚是怎樣的人"
-                    machine.advance(event, score)
-                else: 
-                    send_text_message(sender_id, answer[i])
-                #print(answer[i])
+                    machine.advance(event, score)   #往下個state: state2_1
+                else:   #其他星座
+                    i = random.randint(0,len(answer)-1)
+                    event['answer'] = "依我對這個星座的了解\n" + answer[i]
+                    send_text_message(sender_id, answer[i]) #答覆為星座特徵
             else:
-                send_text_message(sender_id, "猜猜看我是什麼星座")
-        elif(machine.state == 'state2_1'):
-            answer, similarity = q_a(text, docs2_1, aq2_1) #文本搜索
+                if("提示" in text): #訊息為提示
+                    print("your score before:", score[0])
+                    score[0] = score[0]-1   #扣1分
+                    print("your score now:", score[0])
+                    reply = []
+                    reply.append("初接觸我的人常常被我這不冷不熱的態度嚇走了")
+                    reply.append("對於我來說，世界上最重要的東西是感情")
+                    reply.append("可以幽默，可以冷漠，可以柔弱，可以堅強")
+                    reply.append("我容易相信別人，但也容易被騙")
+                    reply.append("說話往往口是心非，別人常常猜不透我在想什麼")
+                    i = random.randint(0,4)
+                    event['answer'] = reply[i]
+                    sender_id = event['sender']['id']
+                    send_text_message(sender_id, reply[i])  #隨機選一個答覆
+                else:
+                    send_text_message(sender_id, "猜猜看我是什麼星座阿，我可以給你提示")
+        elif(machine.state == 'state2_1'):  #問特徵
+            answer, similarity = q_a(text, docs2_1, aq2_1) #q&a2_fix星座文本搜索
             if(similarity > 10):
-                print(answer)
                 event['answer'] = answer
             else:
                 event['answer'] = "我猜不到這是哪個星座，但肯定不是雙魚哈"
-            machine.advance(event, score)
+            machine.advance(event, score)   #往下個state: state2_1_1, state2_1_2
         else:
             machine.advance(event, score)
         return 'OK'
@@ -239,11 +256,13 @@ def show_fsm():
 
 
 if __name__ == "__main__":
+    ### yahoo電影排行榜網頁爬取 ###
     start_url = 'https://movies.yahoo.com.tw/chart.html'
     page = fetch(start_url)
     rows = parse_article_entries(page)
     metadata = [parse_article_meta(entry) for entry in rows]
     
+    ### 文檔讀取 ###
     with open('data/dialog/Gossiping-QA-Dataset.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
@@ -253,10 +272,7 @@ if __name__ == "__main__":
     with open('data/segmentation/segResult.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
-            #doc = []
             docs.append(line.split(' '))
-            #docs.append(doc)
-            #question.append(q)
 
     with open('data/dialog/q&a.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
@@ -280,14 +296,12 @@ if __name__ == "__main__":
         for line in dataset:
             line = line.strip('\n')
             docs1.append(line.split(' '))
-            #print(docs1)
 
     with open('data/dialog/q&a1_2.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             q,a = line.split('\t')
             qa1_2.append([q,a])
-            #print(q)
             jieba.add_word(q, 3, 'n') #新增jieba辭典
             docs1_2.append([q])
 
@@ -295,7 +309,6 @@ if __name__ == "__main__":
         q = []
         a = []
         for line in dataset:
-            #print(line)
             line = line.strip('\n')
             if(line[0] == '/'):
                 if(a != []):
@@ -309,12 +322,10 @@ if __name__ == "__main__":
                 q = line.split('/')
             else:
                 a.append(line)
-        #print(qa2)
 
     with open('data/segmentation/segResult2_1.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
             docs2_1.append(line.split(' '))
-    #print(docs2_1)
 
     run(host="localhost", port=5000, debug=True, reloader=True)

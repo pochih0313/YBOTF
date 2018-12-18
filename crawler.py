@@ -1,27 +1,16 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-#import urllib.parse
 import re
 import requests
 import time
 from bs4 import BeautifulSoup
-#import pandas as pd
-#from requests_html import HTML
 
-# class define #
 def fetch(ur1): #獲得原始碼
     response = requests.get(ur1)
     return response.text
 
 def parse_article_entries(doc): #找到標題
     soup = BeautifulSoup(doc, 'html5lib')
-    #print(soup.prettify())
     rows = soup.find_all('div', class_ = 'tr')
     colname = list(rows.pop(0).stripped_strings) #取得第1列當作colname
-    #print(rows.prettify())
-    #html = HTML(html=doc)
-    #post_entries = html.find('div.tr')
     return rows
 
 def parse_article_meta(entry): #標題資訊抓取
