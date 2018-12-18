@@ -260,6 +260,7 @@ class TocMachine(GraphMachine):
         print(score)
 
         sender_id = event['sender']['id']
+        sender_text_message(sender_id, event['answer'])
         send_text_message(sender_id, "哇很明顯嗎哈哈")
         send_text_message(sender_id, "那你是什麼星座r")
         #self.go_back()

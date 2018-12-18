@@ -15,6 +15,8 @@ qa1 = []
 docs1 = []
 qa1_2 = []
 docs1_2 = []
+qa2 = []
+docs2 = []
 
 VERIFY_TOKEN = "147852369"
 machine = TocMachine(
@@ -230,6 +232,9 @@ def webhook_handler():
             else:
                 event['answer'] = "我不認識他"
             machine.advance(event, score)
+        elif (machine.state == 'state2'):
+            answer, similarity = q_a(event['message']['text'], docs2, qa2) #文本搜索
+
         else:
             machine.advance(event, score)
         return 'OK'
@@ -289,12 +294,19 @@ if __name__ == "__main__":
             line = line.strip('\n')
             q,a = line.split('\t')
             qa1_2.append([q,a])
-
-    with open('data/segmentation/segResult1_2.txt','r',encoding='utf-8') as dataset:
+            docs1_2.append(q)
+    """
+    with open('data/segmentation/segResult2.txt','r',encoding='utf-8') as dataset:
         for line in dataset:
             line = line.strip('\n')
-            docs1_2.append(line.split(' '))
-    
+            docs2.append(line.split(' '))
 
+    
+    with open('data/dialog/q&a2.txt','r',encoding='utf-8') as dataset:
+        for line in dataset:
+            line = line.strip('\n')
+            q,a = line.split('\t')
+            qa2.append([q,a])
+    """
     #print(docs)
     run(host="localhost", port=5000, debug=True, reloader=True)
