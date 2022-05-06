@@ -1,5 +1,5 @@
 # YBOTF
-Simple implementation of Finite State Machine.
+A Messenger Chatbot.
 
 ## 功能
 * 八卦
