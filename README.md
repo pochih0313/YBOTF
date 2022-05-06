@@ -1,19 +1,18 @@
 # YBOTF
+Simple implementation of Finite State Machine.
 
-Your BOT Friend - 你的機器人好朋友
-
-他可以做什麼：
-* 聊八卦
-* 聊電影
-* 聊音樂
-* 聊星座
+## 功能
+* 八卦
+* 電影
+* 音樂
+* 星座
 * 抽卡
 
-試著了解他並獲得他的好感度！
+了解機器人並獲得好感度
 
 ## 設定
 
-### 用到的環境
+### 環境
 
 * Python 3
 * Facebook Page and App
